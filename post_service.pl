@@ -1271,7 +1271,8 @@ sub Certification_hCaptcha {
 						$authwriting = $authwriting . $authwritingname;
 						$Form->Set('FROM', $authwriting);
 
-						# 認証用文字列削除
+						# 認証データを消して再認証するまではauth不可にする
+						# (認証データを残す場合はここをrename等に改造してください)
 						if (-f $authPath){
 							unlink($authPath);
 						}
