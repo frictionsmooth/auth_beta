@@ -1207,7 +1207,7 @@ sub Certification_hCaptcha {
 			# 忍法帖検索用パス指定
 			my $ssPath = "${ninDir}cgisess_${sid}";
 			# 認証を表示しなくする最低書き込み数
-			my $authNinKakikomi = 5;
+			my $authNinKakikomi = 1;
 
 			# 忍法帖の書き込み数を判定
 			if (-f $ssPath && $count >= $authNinKakikomi){
