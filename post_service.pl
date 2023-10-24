@@ -1107,14 +1107,12 @@ sub NormalizationNameMail
 
 # ----------------------------------------------------------------------------------------------
 #　！！！！！！！！！！！！！！！！！！！認証は忍法帖前提！！！！！！！！！！！！！！！！！！！！
-#　設定を有効化するためにhcaptchaのkeyのところに適当な文字突っ込んでください
 # ----------------------------------------------------------------------------------------------
 
 sub Certification_hCaptcha {
 	my $this = shift;
 	my ($Sys, $Form, $type) = @_;
 	my ($total_code, $infoDir);
-	my $mail = $Form->Get('mail');
 	my $Threads = $this->{'THREADS'};
 	my $Sec = $this->{'SECURITY'};
 	my $capID = $Sys->Get('CAPID', '');
@@ -1158,53 +1156,18 @@ sub Certification_hCaptcha {
 	# infoディレクトリ
 	$infoDir = $Sys->Get('INFO');
 
-	# IPアドレスを取得
-	my $ipAddr = ($ENV{'HTTP_CF_CONNECTING_IP'}) ? $ENV{'HTTP_CF_CONNECTING_IP'} : $ENV{'REMOTE_ADDR'};
-
-		# Cookie管理モジュールを用意
-		my $Cookie = $Sys->Get('MainCGI')->{'COOKIE'};
-
-		# CookieからセッションIDを取得
-		my $sid = $Cookie->Get('countsession');
-		if ($sid eq '') {
-			my %cookies = fetch CGI::Cookie;
-			if (exists $cookies{'countsession'}) {
-				$sid = $cookies{'countsession'}->value;
-				$sid =~ s/"//g;
-			}
-		}
-
-		# 読み込む忍法帖ディレクトリを指定
-		my $ninDir = ".$infoDir/.nin/";
-
-		# セッションを読み込む
-		my $session = CGI::Session->load('driver:file;serializer:default', $sid, { Directory => $ninDir }) || 0;
-
-		# セッションIDをクッキーに出力
-		if ($sid eq '') {
-			$sid = $session->id();
-		}
-		$Cookie->Set('countsession', $sid);
-
 		# 読み込む認証用文字列データディレクトリを設定
 		my $authDir = ".$infoDir/.authN/";
-
-		# 忍法帖検索用パス指定
-		my $ssPath = "${ninDir}cgisess_${sid}";
-
+		# メール欄取得
+		my $mail = $Form->Get('mail');
 		# メール欄から認証用文字列取り出し
 		$mail =~ /((?<=!auth)([0-9]+))/o;
-
 		my $authNumberCheck = $1;
-
-		#拡張子を付ける
-
+		# 拡張子を付ける
 		my $authNumberFilePass = $authNumberCheck . ".txt";
-
-		#メールから認証用文字列削除
+		# メールから認証用文字列削除
 		$mail =~ s/(!auth([0-9]+))//g;
 		$mail =~ s/(auth([0-9]+))//g;
-
 		$Form->Set('mail', $mail);
 
 		# 認証用文字列検索用パス指定
@@ -1215,7 +1178,39 @@ sub Certification_hCaptcha {
 		}
 
 		if ($Set->Equal('BBS_NINJA', 'checked')){
-			if (-f $ssPath){
+			# 読み込む忍法帖ディレクトリを指定
+			my $ninDir = ".$infoDir/.nin/";
+					# Cookie管理モジュールを用意
+			my $Cookie = $Sys->Get('MainCGI')->{'COOKIE'};
+
+			# CookieからセッションIDを取得
+			my $sid = $Cookie->Get('countsession');
+			if ($sid eq '') {
+				my %cookies = fetch CGI::Cookie;
+				if (exists $cookies{'countsession'}) {
+					$sid = $cookies{'countsession'}->value;
+					$sid =~ s/"//g;
+				}
+			}
+		
+			# セッションを読み込む
+			my $session = CGI::Session->load('driver:file;serializer:default', $sid, { Directory => $ninDir }) || 0;
+			# セッションから書き込み数を取得
+			my $count = $session->param('count') || 0;
+
+			# セッションIDをクッキーに出力
+			if ($sid eq '') {
+				$sid = $session->id();
+			}
+			$Cookie->Set('countsession', $sid);
+
+			# 忍法帖検索用パス指定
+			my $ssPath = "${ninDir}cgisess_${sid}";
+			# 認証を表示しなくする最低書き込み数
+			my $authNinKakikomi = 5;
+
+			# 忍法帖の書き込み数を判定
+			if (-f $ssPath && $count >= $authNinKakikomi){
 				return $ZP::E_SUCCESS;
 			}
 			else {
@@ -1226,9 +1221,11 @@ sub Certification_hCaptcha {
 					my $authnowtime = localtime;
 					# 現在の時間と認証時の時間の差を求める
 					my $authtimelag = $authnowtime - $authfiletime;
+					# 認証コードの期限設定(秒単位)
+					my $authtimelimit = 180;
 
-					# 180秒以内に認証しているか確認
-					if ($authtimelag < 180){
+					# 設定した期限以内に認証しているか確認
+					if ($authtimelag < $authtimelimit){
 
 						# 認証コードに記録されたipを取得
 						# open(my $fh, '<', $authPath);
@@ -1237,8 +1234,6 @@ sub Certification_hCaptcha {
 
 						# 認証時のipと書き込み時のipを比較
 						# if ($ipAddr == $ipcomparison){
-
-						# 認証できたと証明するために認証用セッションIDを保存
 
 						# 初書き込み時は強制sageにする
 						my $mailsage = $Form->Get('mail');
@@ -1252,6 +1247,7 @@ sub Certification_hCaptcha {
 						my $noAttr = $Sec->IsAuthority($capID, $ZP::CAP_REG_NOATTR, $Form->Get('bbs'));
 						# 名前取得
 						my $authwriting = $Form->Get('FROM', '');
+
 						# スレ属性の処理
 						if (($authwriting eq ''||$Threads->GetAttr($threadid,'force774')) && !$noAttr) {
 							if($Threads->GetAttr($threadid,'change774')){
@@ -1301,6 +1297,7 @@ sub Certification_hCaptcha {
 				}
 			}
 		}
+		
 		# 忍法帖が有効になってない場合の認証処理を入れたい場合は以下の中身を改造してください。
 		else {
 				my $NoNinpochoCheckName = " ★ 設定で忍法帖が無効になってます！";
@@ -1309,6 +1306,7 @@ sub Certification_hCaptcha {
 				my $noAttr = $Sec->IsAuthority($capID, $ZP::CAP_REG_NOATTR, $Form->Get('bbs'));
 				# 名前取得
 				my $NoNinpochoName = $Form->Get('FROM', '');
+
 				# スレ属性の処理
 				if (($NoNinpochoName eq ''||$Threads->GetAttr($threadid,'force774')) && !$noAttr) {
 					if($Threads->GetAttr($threadid,'change774')){
@@ -1318,6 +1316,7 @@ sub Certification_hCaptcha {
 						$NoNinpochoName = $this->{'SET'}->Get('BBS_NONAME_NAME');
 					}
 				}
+
 				else {
 					# 何もスレ属性が付いていなかったら
 					my $NoNinpochoNameelse = $Form->Get('FROM');
@@ -1332,6 +1331,7 @@ sub Certification_hCaptcha {
 				if (-f $authPath){
 					unlink($authPath);
 				}
+
 				return $ZP::E_SUCCESS;
 		}	
 }
