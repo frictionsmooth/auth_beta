@@ -1267,8 +1267,8 @@ sub Certification_hCaptcha {
 						$authwriting = $authwriting . $authwritingname;
 						$Form->Set('FROM', $authwriting);
 
-						# 認証データを消して再認証するまではauth不可にする
-						# (認証データを残す場合はここをrename等に改造してください)
+						# 認証コードを消して再認証するまではauth不可にする
+						# (認証コードを残す場合はここをrename等に改造してください)
 						if (-f $authPath){
 							unlink($authPath);
 						}
@@ -1283,8 +1283,8 @@ sub Certification_hCaptcha {
 					# }
 
 					else {
-						# 認証データを消して再認証するまではauth不可にする
-						# (認証データを残す場合はここをrename等に改造してください)
+						# 認証コードを消して再認証するまではauth不可にする
+						# (認証コードを残す場合はここをrename等に改造してください)
 						if (-f $authPath){
 							unlink($authPath);
 						}
@@ -1326,8 +1326,8 @@ sub Certification_hCaptcha {
 				$NoNinpochoName = $NoNinpochoName . $NoNinpochoCheckName;
 				$Form->Set('FROM', $NoNinpochoName);
 
-				# 認証データを消して再認証するまではauth不可にする
-				# (認証データを残す場合はここをrename等に改造してください)
+				# 認証コードを消して再認証するまではauth不可にする
+				# (認証コードを残す場合はここをrename等に改造してください)
 				if (-f $authPath){
 					unlink($authPath);
 				}
